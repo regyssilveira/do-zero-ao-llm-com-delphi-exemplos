@@ -11,6 +11,10 @@ type
   TLinearLayer = class
   private
     FBias: TTensor;
+    FCachedInput: TTensor;
+    FGradBias: TTensor;
+    FGradWeights: TTensor;
+    FHasForwardCache: Boolean;
     FInputSize: Integer;
     FOutputSize: Integer;
     FWeights: TTensor;
@@ -19,11 +23,15 @@ type
       var ARandom: TXorShift64Star);
     destructor Destroy; override;
     function Forward(const AInput: TTensor): TTensor;
+    function Backward(const AGradOutput: TTensor): TTensor;
+    procedure ZeroGrad;
     procedure SetWeight(const AOutput, AInput: Integer;
       const AValue: Single);
     procedure SetBias(const AOutput: Integer; const AValue: Single);
     function WeightAt(const AOutput, AInput: Integer): Single;
     function BiasAt(const AOutput: Integer): Single;
+    function WeightGradientAt(const AOutput, AInput: Integer): Single;
+    function BiasGradientAt(const AOutput: Integer): Single;
     property InputSize: Integer read FInputSize;
     property OutputSize: Integer read FOutputSize;
   end;
@@ -54,6 +62,10 @@ begin
   FOutputSize := AOutputSize;
   FWeights := TTensor.Create([FOutputSize, FInputSize]);
   FBias := TTensor.Create([FOutputSize]);
+  FGradWeights := TTensor.Create([FOutputSize, FInputSize]);
+  FGradBias := TTensor.Create([FOutputSize]);
+  FCachedInput := TTensor.Create([FInputSize]);
+  FHasForwardCache := False;
 
   Limit := Sqrt(6.0 / (FInputSize + FOutputSize));
   for OutputIndex := 0 to FOutputSize - 1 do
@@ -66,6 +78,9 @@ end;
 
 destructor TLinearLayer.Destroy;
 begin
+  FCachedInput.Free;
+  FGradBias.Free;
+  FGradWeights.Free;
   FBias.Free;
   FWeights.Free;
   inherited;
@@ -83,6 +98,10 @@ begin
     raise EDelphiLMTensorError.CreateFmt(
       'A camada esperava vetor [%d].', [FInputSize]);
 
+  for InputIndex := 0 to FInputSize - 1 do
+    FCachedInput.SetFlatValue(InputIndex, AInput.FlatValue(InputIndex));
+  FHasForwardCache := True;
+
   Result := TTensor.Create([FOutputSize]);
   for OutputIndex := 0 to FOutputSize - 1 do
   begin
@@ -92,6 +111,47 @@ begin
         AInput.FlatValue(InputIndex);
     Result.SetFlatValue(OutputIndex, Sum);
   end;
+end;
+
+function TLinearLayer.Backward(const AGradOutput: TTensor): TTensor;
+var
+  GradValue: Single;
+  InputIndex: Integer;
+  OutputIndex: Integer;
+begin
+  if not FHasForwardCache then
+    raise EDelphiLMTensorError.Create('Backward exige um Forward anterior.');
+  if AGradOutput = nil then
+    raise EArgumentNilException.Create('AGradOutput');
+  if (AGradOutput.Rank <> 1) or
+     (AGradOutput.ElementCount <> FOutputSize) then
+    raise EDelphiLMTensorError.CreateFmt(
+      'Backward esperava gradiente [%d].', [FOutputSize]);
+
+  Result := TTensor.Create([FInputSize]);
+  Result.Fill(0);
+  for OutputIndex := 0 to FOutputSize - 1 do
+  begin
+    GradValue := AGradOutput.FlatValue(OutputIndex);
+    FGradBias.SetFlatValue(OutputIndex,
+      FGradBias.FlatValue(OutputIndex) + GradValue);
+    for InputIndex := 0 to FInputSize - 1 do
+    begin
+      FGradWeights.SetValue(
+        FGradWeights.ValueAt([OutputIndex, InputIndex]) +
+          GradValue * FCachedInput.FlatValue(InputIndex),
+        [OutputIndex, InputIndex]);
+      Result.SetFlatValue(InputIndex,
+        Result.FlatValue(InputIndex) +
+          FWeights.ValueAt([OutputIndex, InputIndex]) * GradValue);
+    end;
+  end;
+end;
+
+procedure TLinearLayer.ZeroGrad;
+begin
+  FGradWeights.Fill(0);
+  FGradBias.Fill(0);
 end;
 
 procedure TLinearLayer.SetWeight(const AOutput, AInput: Integer;
@@ -114,6 +174,17 @@ end;
 function TLinearLayer.BiasAt(const AOutput: Integer): Single;
 begin
   Result := FBias.FlatValue(AOutput);
+end;
+
+function TLinearLayer.WeightGradientAt(const AOutput,
+  AInput: Integer): Single;
+begin
+  Result := FGradWeights.ValueAt([AOutput, AInput]);
+end;
+
+function TLinearLayer.BiasGradientAt(const AOutput: Integer): Single;
+begin
+  Result := FGradBias.FlatValue(AOutput);
 end;
 
 function ReLU(const AValue: Single): Single;

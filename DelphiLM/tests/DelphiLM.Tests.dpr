@@ -283,6 +283,76 @@ begin
   end;
 end;
 
+function HalfSquaredLoss(const AOutput: TTensor): Single;
+var
+  Value: Single;
+begin
+  Value := AOutput.FlatValue(0);
+  Result := 0.5 * Value * Value;
+end;
+
+procedure TestLinearGradientCheck;
+const
+  Epsilon: Single = 1.0E-3;
+var
+  AnalyticGradient: Single;
+  GradInput: TTensor;
+  GradOutput: TTensor;
+  Input: TTensor;
+  Layer: TLinearLayer;
+  LossMinus: Single;
+  LossPlus: Single;
+  NumericalGradient: Single;
+  OriginalWeight: Single;
+  Output: TTensor;
+  Random: TXorShift64Star;
+begin
+  Random.Initialize(7);
+  Layer := TLinearLayer.Create(2, 1, Random);
+  Input := TTensor.Create([2]);
+  GradOutput := TTensor.Create([1]);
+  Output := nil;
+  GradInput := nil;
+  try
+    Layer.SetWeight(0, 0, 0.3);
+    Layer.SetWeight(0, 1, -0.2);
+    Layer.SetBias(0, 0.1);
+    Input.SetFlatValue(0, 0.4);
+    Input.SetFlatValue(1, -0.7);
+
+    Output := Layer.Forward(Input);
+    GradOutput.SetFlatValue(0, Output.FlatValue(0));
+    Layer.ZeroGrad;
+    GradInput := Layer.Backward(GradOutput);
+    AnalyticGradient := Layer.WeightGradientAt(0, 1);
+    FreeAndNil(Output);
+
+    OriginalWeight := Layer.WeightAt(0, 1);
+    Layer.SetWeight(0, 1, OriginalWeight + Epsilon);
+    Output := Layer.Forward(Input);
+    LossPlus := HalfSquaredLoss(Output);
+    FreeAndNil(Output);
+
+    Layer.SetWeight(0, 1, OriginalWeight - Epsilon);
+    Output := Layer.Forward(Input);
+    LossMinus := HalfSquaredLoss(Output);
+    NumericalGradient := (LossPlus - LossMinus) / (2 * Epsilon);
+    Layer.SetWeight(0, 1, OriginalWeight);
+
+    AssertTrue(Abs(AnalyticGradient - NumericalGradient) < 1.0E-4,
+      'Gradiente analítico deve coincidir com diferenças finitas.');
+    AssertTrue(Abs(GradInput.FlatValue(0) -
+      0.3 * GradOutput.FlatValue(0)) < 1.0E-6,
+      'Backward deve devolver o gradiente da entrada.');
+  finally
+    Output.Free;
+    GradInput.Free;
+    GradOutput.Free;
+    Input.Free;
+    Layer.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -307,7 +377,8 @@ begin
     RunTest('cross-entropy uniforme', TestCrossEntropyUniform);
     RunTest('cross-entropy invariante a deslocamento',
       TestCrossEntropyShiftInvariant);
-    Writeln('14 testes aprovados.');
+    RunTest('gradient check da camada linear', TestLinearGradientCheck);
+    Writeln('15 testes aprovados.');
   except
     on E: Exception do
     begin
