@@ -21,6 +21,7 @@ uses
   DelphiLM.Model.Training in '..\src\DelphiLM.Model.Training.pas',
   DelphiLM.Model.Generation in '..\src\DelphiLM.Model.Generation.pas',
   DelphiLM.Model.Checkpoint in '..\src\DelphiLM.Model.Checkpoint.pas',
+  System.Generics.Collections,
   System.IOUtils;
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
@@ -372,6 +373,140 @@ begin
     GradOutput.Free;
     Input.Free;
     Layer.Free;
+  end;
+end;
+
+function HalfSquaredTensorLoss(const AOutput: TTensor): Single;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to AOutput.ElementCount - 1 do
+    Result := Result + 0.5 * Sqr(AOutput.FlatValue(I));
+end;
+
+procedure FillGradientFromOutput(const AOutput, AGradient: TTensor);
+var
+  I: Integer;
+begin
+  for I := 0 to AOutput.ElementCount - 1 do
+    AGradient.SetFlatValue(I, AOutput.FlatValue(I));
+end;
+
+procedure TestLayerNormGradientCheck;
+const
+  Epsilon: Single = 1.0E-3;
+var
+  Analytic, LossMinus, LossPlus, Numerical, Original: Single;
+  GradInput, GradOutput, Input, Output: TTensor;
+  LayerNorm: TLayerNorm;
+  Parameters: TList<TTrainableParameter>;
+begin
+  LayerNorm := TLayerNorm.Create(3);
+  Parameters := TList<TTrainableParameter>.Create;
+  Input := TTensor.Create([2, 3]);
+  GradOutput := TTensor.Create([2, 3]);
+  Output := nil; GradInput := nil;
+  try
+    Input.SetValue(0.2, [0, 0]); Input.SetValue(-0.5, [0, 1]);
+    Input.SetValue(1.1, [0, 2]); Input.SetValue(0.7, [1, 0]);
+    Input.SetValue(0.1, [1, 1]); Input.SetValue(-0.4, [1, 2]);
+    LayerNorm.CollectParameters(Parameters);
+    Output := LayerNorm.Forward(Input);
+    FillGradientFromOutput(Output, GradOutput);
+    LayerNorm.ZeroGrad;
+    GradInput := LayerNorm.Backward(GradOutput);
+    Analytic := Parameters[0].Gradient.FlatValue(1);
+    Original := Parameters[0].Value.FlatValue(1);
+    FreeAndNil(Output);
+    Parameters[0].Value.SetFlatValue(1, Original + Epsilon);
+    Output := LayerNorm.Forward(Input); LossPlus := HalfSquaredTensorLoss(Output);
+    FreeAndNil(Output);
+    Parameters[0].Value.SetFlatValue(1, Original - Epsilon);
+    Output := LayerNorm.Forward(Input); LossMinus := HalfSquaredTensorLoss(Output);
+    Numerical := (LossPlus - LossMinus) / (2 * Epsilon);
+    Parameters[0].Value.SetFlatValue(1, Original);
+    AssertTrue(Abs(Analytic - Numerical) < 2.0E-3,
+      'Gradient check da LayerNorm deve coincidir com diferenças finitas.');
+  finally
+    Output.Free; GradInput.Free; GradOutput.Free; Input.Free;
+    Parameters.Free; LayerNorm.Free;
+  end;
+end;
+
+procedure TestMultiHeadAttentionGradientCheck;
+const
+  Epsilon: Single = 1.0E-3;
+var
+  Analytic, LossMinus, LossPlus, Numerical, Original: Single;
+  Attention: TMultiHeadCausalSelfAttention;
+  GradInput, GradOutput, Input, Output: TTensor;
+  Parameters: TList<TTrainableParameter>;
+  Random: TXorShift64Star;
+begin
+  Random.Initialize(120);
+  Attention := TMultiHeadCausalSelfAttention.Create(2, 1, Random);
+  Parameters := TList<TTrainableParameter>.Create;
+  Input := TTensor.Create([2, 2]); GradOutput := TTensor.Create([2, 2]);
+  Output := nil; GradInput := nil;
+  try
+    Input.SetValue(0.2, [0, 0]); Input.SetValue(-0.3, [0, 1]);
+    Input.SetValue(0.7, [1, 0]); Input.SetValue(0.4, [1, 1]);
+    Attention.CollectParameters(Parameters);
+    Output := Attention.Forward(Input); FillGradientFromOutput(Output, GradOutput);
+    Attention.ZeroGrad; GradInput := Attention.Backward(GradOutput);
+    Analytic := Parameters[0].Gradient.ValueAt([0, 1]);
+    Original := Parameters[0].Value.ValueAt([0, 1]); FreeAndNil(Output);
+    Parameters[0].Value.SetValue(Original + Epsilon, [0, 1]);
+    Output := Attention.Forward(Input); LossPlus := HalfSquaredTensorLoss(Output);
+    FreeAndNil(Output);
+    Parameters[0].Value.SetValue(Original - Epsilon, [0, 1]);
+    Output := Attention.Forward(Input); LossMinus := HalfSquaredTensorLoss(Output);
+    Numerical := (LossPlus - LossMinus) / (2 * Epsilon);
+    Parameters[0].Value.SetValue(Original, [0, 1]);
+    AssertTrue(Abs(Analytic - Numerical) < 2.0E-3,
+      'Gradient check da atenção multi-head deve coincidir com diferenças finitas.');
+  finally
+    Output.Free; GradInput.Free; GradOutput.Free; Input.Free;
+    Parameters.Free; Attention.Free;
+  end;
+end;
+
+procedure TestTransformerBlockGradientCheck;
+const
+  Epsilon: Single = 1.0E-3;
+var
+  Analytic, LossMinus, LossPlus, Numerical, Original: Single;
+  Block: TTransformerBlock;
+  GradInput, GradOutput, Input, Output: TTensor;
+  Parameters: TList<TTrainableParameter>;
+  Random: TXorShift64Star;
+begin
+  Random.Initialize(121);
+  Block := TTransformerBlock.Create(2, 1, 3, Random);
+  Parameters := TList<TTrainableParameter>.Create;
+  Input := TTensor.Create([2, 2]); GradOutput := TTensor.Create([2, 2]);
+  Output := nil; GradInput := nil;
+  try
+    Input.SetValue(0.2, [0, 0]); Input.SetValue(-0.6, [0, 1]);
+    Input.SetValue(0.8, [1, 0]); Input.SetValue(0.1, [1, 1]);
+    Block.CollectParameters(Parameters);
+    Output := Block.Forward(Input); FillGradientFromOutput(Output, GradOutput);
+    Block.ZeroGrad; GradInput := Block.Backward(GradOutput);
+    Analytic := Parameters[14].Gradient.ValueAt([0, 1]);
+    Original := Parameters[14].Value.ValueAt([0, 1]); FreeAndNil(Output);
+    Parameters[14].Value.SetValue(Original + Epsilon, [0, 1]);
+    Output := Block.Forward(Input); LossPlus := HalfSquaredTensorLoss(Output);
+    FreeAndNil(Output);
+    Parameters[14].Value.SetValue(Original - Epsilon, [0, 1]);
+    Output := Block.Forward(Input); LossMinus := HalfSquaredTensorLoss(Output);
+    Numerical := (LossPlus - LossMinus) / (2 * Epsilon);
+    Parameters[14].Value.SetValue(Original, [0, 1]);
+    AssertTrue(Abs(Analytic - Numerical) < 2.0E-3,
+      'Gradient check do bloco Transformer deve coincidir com diferenças finitas.');
+  finally
+    Output.Free; GradInput.Free; GradOutput.Free; Input.Free;
+    Parameters.Free; Block.Free;
   end;
 end;
 
@@ -930,6 +1065,11 @@ begin
     RunTest('cross-entropy invariante a deslocamento',
       TestCrossEntropyShiftInvariant);
     RunTest('gradient check da camada linear', TestLinearGradientCheck);
+    RunTest('gradient check da LayerNorm', TestLayerNormGradientCheck);
+    RunTest('gradient check da atenção multi-head',
+      TestMultiHeadAttentionGradientCheck);
+    RunTest('gradient check do bloco Transformer',
+      TestTransformerBlockGradientCheck);
     RunTest('clipping por norma global', TestGradientClipScale);
     RunTest('Adam aprende exemplo minúsculo', TestAdamLearnsTinyExample);
     RunTest('embedding de token e posição', TestTokenPositionEmbeddingForward);
@@ -954,7 +1094,7 @@ begin
       TestFullModelLearnsTinySequence);
     RunTest('Top-K um escolhe o máximo', TestTopKOneAlwaysChoosesMaximum);
     RunTest('checkpoint restaura logits exatos', TestCheckpointRestoresExactLogits);
-    Writeln('31 testes aprovados.');
+    Writeln('34 testes aprovados.');
   except
     on E: Exception do
     begin
