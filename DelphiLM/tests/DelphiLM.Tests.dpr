@@ -15,7 +15,8 @@ uses
   DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas',
   DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas',
   DelphiLM.Transformer.MultiHeadAttention in '..\src\DelphiLM.Transformer.MultiHeadAttention.pas',
-  DelphiLM.Transformer.Block in '..\src\DelphiLM.Transformer.Block.pas';
+  DelphiLM.Transformer.Block in '..\src\DelphiLM.Transformer.Block.pas',
+  DelphiLM.Model.LanguageModel in '..\src\DelphiLM.Model.LanguageModel.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -722,6 +723,95 @@ begin
   end;
 end;
 
+procedure ZeroTransformerBranches(const ABlock: TTransformerBlock;
+  const AEmbeddingDimension, AFeedForwardDimension: Integer);
+var
+  Column: Integer;
+  Row: Integer;
+begin
+  for Row := 0 to AEmbeddingDimension - 1 do
+    for Column := 0 to AEmbeddingDimension - 1 do
+      ABlock.Attention.SetOutputWeight(Row, Column, 0);
+  for Row := 0 to AEmbeddingDimension - 1 do
+    for Column := 0 to AFeedForwardDimension - 1 do
+      ABlock.SetFeedForwardOutputWeight(Row, Column, 0);
+end;
+
+procedure TestLanguageModelProducesLogitsWithTiedWeights;
+var
+  Config: TDelphiLMConfig;
+  Logits: TTensor;
+  Model: TDelphiLanguageModel;
+  Tokens: TArray<Integer>;
+begin
+  Config := TDelphiLMConfig.Default;
+  Config.VocabularySize := 3;
+  Config.ContextLength := 2;
+  Config.EmbeddingDimension := 2;
+  Config.BlockCount := 1;
+  Config.AttentionHeadCount := 2;
+  Config.FeedForwardDimension := 4;
+  Model := TDelphiLanguageModel.Create(Config);
+  Logits := nil;
+  try
+    ZeroTransformerBranches(Model.BlockAt(0), 2, 4);
+    Model.Embeddings.TokenTable.SetValue(0, 0, 1);
+    Model.Embeddings.TokenTable.SetValue(0, 1, 3);
+    Model.Embeddings.TokenTable.SetValue(1, 0, -1);
+    Model.Embeddings.TokenTable.SetValue(1, 1, 1);
+    Model.Embeddings.TokenTable.SetValue(2, 0, 1);
+    Model.Embeddings.TokenTable.SetValue(2, 1, -1);
+    Model.Embeddings.PositionTable.SetValue(0, 0, 0);
+    Model.Embeddings.PositionTable.SetValue(0, 1, 0);
+    Tokens := TArray<Integer>.Create(0);
+    Logits := Model.Forward(Tokens);
+    AssertTrue((Logits.Dimension(0) = 1) and
+      (Logits.Dimension(1) = 3),
+      'O modelo deve produzir um logit por token do vocabulário.');
+    AssertTrue(Logits.ValueAt([0, 1]) > 1.9,
+      'O token 1 deve receber logit positivo pelos pesos compartilhados.');
+    AssertTrue(Logits.ValueAt([0, 2]) < -1.9,
+      'O token 2 deve receber logit negativo pelos pesos compartilhados.');
+  finally
+    Logits.Free;
+    Model.Free;
+  end;
+end;
+
+procedure TestLanguageModelRejectsLongContext;
+var
+  Config: TDelphiLMConfig;
+  Logits: TTensor;
+  Model: TDelphiLanguageModel;
+  RaisedExpectedError: Boolean;
+  Tokens: TArray<Integer>;
+begin
+  Config := TDelphiLMConfig.Default;
+  Config.VocabularySize := 3;
+  Config.ContextLength := 2;
+  Config.EmbeddingDimension := 2;
+  Config.BlockCount := 1;
+  Config.AttentionHeadCount := 1;
+  Config.FeedForwardDimension := 4;
+  Model := TDelphiLanguageModel.Create(Config);
+  Logits := nil;
+  RaisedExpectedError := False;
+  try
+    Tokens := TArray<Integer>.Create(0, 1, 2);
+    try
+      Logits := Model.Forward(Tokens);
+    except
+      on E: EDelphiLMTensorError do
+        RaisedExpectedError := True;
+    end;
+    AssertTrue(RaisedExpectedError,
+      'O modelo deve rejeitar sequência maior que o contexto máximo.');
+  finally
+    Logits.Free;
+    Model.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -763,7 +853,11 @@ begin
     RunTest('LayerNorm por posição', TestLayerNormNormalizesEachPosition);
     RunTest('bloco Transformer preserva residual',
       TestTransformerBlockResidualIdentity);
-    Writeln('25 testes aprovados.');
+    RunTest('modelo produz logits com pesos compartilhados',
+      TestLanguageModelProducesLogitsWithTiedWeights);
+    RunTest('modelo rejeita contexto longo',
+      TestLanguageModelRejectsLongContext);
+    Writeln('27 testes aprovados.');
   except
     on E: Exception do
     begin

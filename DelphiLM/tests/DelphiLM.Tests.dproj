@@ -42,6 +42,7 @@
     <DCCReference Include="..\src\DelphiLM.Transformer.Attention.pas" />
     <DCCReference Include="..\src\DelphiLM.Transformer.MultiHeadAttention.pas" />
     <DCCReference Include="..\src\DelphiLM.Transformer.Block.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.LanguageModel.pas" />
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
       <CfgParent>Base</CfgParent>
