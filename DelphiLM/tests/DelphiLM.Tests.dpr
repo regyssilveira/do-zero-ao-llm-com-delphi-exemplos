@@ -8,7 +8,8 @@ uses
   DelphiLM.Core.Config in '..\src\DelphiLM.Core.Config.pas',
   DelphiLM.Core.Random in '..\src\DelphiLM.Core.Random.pas',
   DelphiLM.Data.Tokenizer in '..\src\DelphiLM.Data.Tokenizer.pas',
-  DelphiLM.Math.Tensor in '..\src\DelphiLM.Math.Tensor.pas';
+  DelphiLM.Math.Tensor in '..\src\DelphiLM.Math.Tensor.pas',
+  DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -157,6 +158,66 @@ begin
   end;
 end;
 
+procedure TestLinearForward;
+var
+  Input: TTensor;
+  Layer: TLinearLayer;
+  Output: TTensor;
+  Random: TXorShift64Star;
+begin
+  Random.Initialize(42);
+  Layer := TLinearLayer.Create(2, 2, Random);
+  Input := TTensor.Create([2]);
+  Output := nil;
+  try
+    Layer.SetWeight(0, 0, 0.5);
+    Layer.SetWeight(0, 1, -1.0);
+    Layer.SetBias(0, 0.1);
+    Layer.SetWeight(1, 0, 2.0);
+    Layer.SetWeight(1, 1, 0.25);
+    Layer.SetBias(1, -0.2);
+    Input.SetFlatValue(0, 2.0);
+    Input.SetFlatValue(1, 3.0);
+    Output := Layer.Forward(Input);
+    AssertTrue(Abs(Output.FlatValue(0) - (-1.9)) < 1.0E-5,
+      'A primeira saída linear deve ser -1,9.');
+    AssertTrue(Abs(Output.FlatValue(1) - 4.55) < 1.0E-5,
+      'A segunda saída linear deve ser 4,55.');
+  finally
+    Output.Free;
+    Input.Free;
+    Layer.Free;
+  end;
+end;
+
+procedure TestActivations;
+begin
+  AssertTrue(ReLU(-2) = 0, 'ReLU deve zerar entrada negativa.');
+  AssertTrue(ReLU(2) = 2, 'ReLU deve preservar entrada positiva.');
+  AssertTrue(Abs(GELU(0)) < 1.0E-6, 'GELU de zero deve ser zero.');
+  AssertTrue(GELU(1) > 0, 'GELU de um deve ser positiva.');
+end;
+
+procedure TestLinearInitializationIsDeterministic;
+var
+  LeftLayer: TLinearLayer;
+  LeftRandom: TXorShift64Star;
+  RightLayer: TLinearLayer;
+  RightRandom: TXorShift64Star;
+begin
+  LeftRandom.Initialize(123);
+  RightRandom.Initialize(123);
+  LeftLayer := TLinearLayer.Create(3, 2, LeftRandom);
+  RightLayer := TLinearLayer.Create(3, 2, RightRandom);
+  try
+    AssertTrue(LeftLayer.WeightAt(1, 2) = RightLayer.WeightAt(1, 2),
+      'Mesma seed deve produzir os mesmos pesos iniciais.');
+  finally
+    RightLayer.Free;
+    LeftLayer.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -173,7 +234,11 @@ begin
     RunTest('tensor row-major', TestTensorRowMajor);
     RunTest('produto escalar', TestDotProduct);
     RunTest('multiplicação matricial', TestMatrixMultiply);
-    Writeln('8 testes aprovados.');
+    RunTest('camada linear forward', TestLinearForward);
+    RunTest('ativações', TestActivations);
+    RunTest('inicialização linear determinística',
+      TestLinearInitializationIsDeterministic);
+    Writeln('11 testes aprovados.');
   except
     on E: Exception do
     begin
