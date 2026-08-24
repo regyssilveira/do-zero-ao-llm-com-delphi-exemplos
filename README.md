@@ -19,7 +19,7 @@ Datasets não herdam essa licença. Cada corpus deverá trazer proveniência, ha
 
 ## Estado
 
-O projeto `DelphiLM` começa como spike técnico. Sua finalidade inicial é validar compilação, testes, determinismo, operações numéricas, treinamento, persistência e desempenho antes da redação definitiva dos capítulos.
+O projeto `DelphiLM` implementa o percurso técnico completo do livro: configuração, tokenização, tensores, camadas, perdas, backward, otimização, embeddings, atenção causal, bloco Transformer, modelo integrado, treinamento mínimo, geração e checkpoint.
 
 ## Primeira execução
 
@@ -28,4 +28,4 @@ Abra `DelphiLM/DelphiLM.groupproj` no Delphi 13 Florence. O grupo contém:
 - `DelphiLM.Smoke`: confirma configuração e execução Win64;
 - `DelphiLM.Tests`: executa os testes automatizados iniciais.
 
-O estado inicial foi compilado no Delphi 13/compilador Win64 37.0 em Debug e Release. Os testes verificam a configuração de referência, a compatibilidade entre embedding e cabeças e a repetibilidade do gerador pseudoaleatório.
+A versão consolidada foi compilada no Delphi 13 Florence, compilador Win64 37.0, em Debug e Release. Execute `DelphiLM.Tests`; o critério é concluir 34 testes sem linhas de falha e encerrar com código zero. `DelphiLM.Smoke` confirma a configuração de referência e a sequência pseudoaleatória reproduzível.
