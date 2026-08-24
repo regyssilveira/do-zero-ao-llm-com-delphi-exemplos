@@ -10,7 +10,8 @@ uses
   DelphiLM.Data.Tokenizer in '..\src\DelphiLM.Data.Tokenizer.pas',
   DelphiLM.Math.Tensor in '..\src\DelphiLM.Math.Tensor.pas',
   DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas',
-  DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas';
+  DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas',
+  DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -353,6 +354,89 @@ begin
   end;
 end;
 
+procedure TestGradientClipScale;
+var
+  GradInput: TTensor;
+  GradOutput: TTensor;
+  Input: TTensor;
+  Layer: TLinearLayer;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Scale: Single;
+begin
+  Random.Initialize(8);
+  Layer := TLinearLayer.Create(1, 1, Random);
+  Input := TTensor.Create([1]);
+  GradOutput := TTensor.Create([1]);
+  Output := nil;
+  GradInput := nil;
+  try
+    Input.SetFlatValue(0, 3);
+    GradOutput.SetFlatValue(0, 4);
+    Output := Layer.Forward(Input);
+    Layer.ZeroGrad;
+    GradInput := Layer.Backward(GradOutput);
+    Scale := LinearGradientClipScale(Layer, 2);
+    AssertTrue(Abs(LinearGradientGlobalNorm(Layer) * Scale - 2) < 1.0E-5,
+      'Clipping deve reduzir a norma efetiva para dois.');
+  finally
+    GradInput.Free;
+    Output.Free;
+    GradOutput.Free;
+    Input.Free;
+    Layer.Free;
+  end;
+end;
+
+procedure TestAdamLearnsTinyExample;
+var
+  ErrorValue: Single;
+  GradInput: TTensor;
+  GradOutput: TTensor;
+  Input: TTensor;
+  Layer: TLinearLayer;
+  Optimizer: TAdamOptimizer;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Step: Integer;
+begin
+  Random.Initialize(9);
+  Layer := TLinearLayer.Create(1, 1, Random);
+  Optimizer := TAdamOptimizer.Create(Layer, 0.05);
+  Input := TTensor.Create([1]);
+  GradOutput := TTensor.Create([1]);
+  Output := nil;
+  GradInput := nil;
+  try
+    Layer.SetWeight(0, 0, 0);
+    Layer.SetBias(0, 0);
+    Input.SetFlatValue(0, 1);
+    for Step := 1 to 200 do
+    begin
+      FreeAndNil(Output);
+      Output := Layer.Forward(Input);
+      ErrorValue := Output.FlatValue(0) - 2;
+      GradOutput.SetFlatValue(0, ErrorValue);
+      Layer.ZeroGrad;
+      FreeAndNil(GradInput);
+      GradInput := Layer.Backward(GradOutput);
+      Optimizer.Step(1);
+    end;
+    FreeAndNil(Output);
+    Output := Layer.Forward(Input);
+    ErrorValue := Output.FlatValue(0) - 2;
+    AssertTrue(0.5 * ErrorValue * ErrorValue < 1.0E-6,
+      'Adam deve ajustar o exemplo minúsculo até loss inferior a 1e-6.');
+  finally
+    GradInput.Free;
+    Output.Free;
+    GradOutput.Free;
+    Input.Free;
+    Optimizer.Free;
+    Layer.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -378,7 +462,9 @@ begin
     RunTest('cross-entropy invariante a deslocamento',
       TestCrossEntropyShiftInvariant);
     RunTest('gradient check da camada linear', TestLinearGradientCheck);
-    Writeln('15 testes aprovados.');
+    RunTest('clipping por norma global', TestGradientClipScale);
+    RunTest('Adam aprende exemplo minúsculo', TestAdamLearnsTinyExample);
+    Writeln('17 testes aprovados.');
   except
     on E: Exception do
     begin
