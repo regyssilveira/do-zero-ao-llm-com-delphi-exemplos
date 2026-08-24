@@ -33,6 +33,7 @@
     </DelphiCompile>
     <DCCReference Include="..\src\DelphiLM.Core.Config.pas" />
     <DCCReference Include="..\src\DelphiLM.Core.Random.pas" />
+    <DCCReference Include="..\src\DelphiLM.Data.Tokenizer.pas" />
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
       <CfgParent>Base</CfgParent>

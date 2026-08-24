@@ -6,7 +6,8 @@ program DelphiLM_Tests;
 uses
   System.SysUtils,
   DelphiLM.Core.Config in '..\src\DelphiLM.Core.Config.pas',
-  DelphiLM.Core.Random in '..\src\DelphiLM.Core.Random.pas';
+  DelphiLM.Core.Random in '..\src\DelphiLM.Core.Random.pas',
+  DelphiLM.Data.Tokenizer in '..\src\DelphiLM.Data.Tokenizer.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -55,6 +56,40 @@ begin
       'A mesma seed deve reproduzir a mesma sequência.');
 end;
 
+procedure TestTokenizerRoundTrip;
+const
+  Corpus = 'Delphi também aprende.';
+var
+  Tokenizer: TCharacterTokenizer;
+  Tokens: TArray<Integer>;
+begin
+  Tokenizer := TCharacterTokenizer.Create(Corpus);
+  try
+    Tokens := Tokenizer.Encode(Corpus);
+    AssertTrue(Tokenizer.Decode(Tokens) = Corpus,
+      'Encode seguido de Decode deve recuperar o texto normalizado.');
+  finally
+    Tokenizer.Free;
+  end;
+end;
+
+procedure TestTokenizerNormalizesNFC;
+var
+  Composed: string;
+  Decomposed: string;
+  Tokenizer: TCharacterTokenizer;
+begin
+  Composed := 'a' + Char($00E7) + Char($00E3) + 'o';
+  Decomposed := 'ac' + Char($0327) + Char($00E3) + 'o';
+  Tokenizer := TCharacterTokenizer.Create(Composed);
+  try
+    AssertTrue(Tokenizer.Decode(Tokenizer.Encode(Decomposed)) = Composed,
+      'Formas Unicode equivalentes devem ser normalizadas para NFC.');
+  finally
+    Tokenizer.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -66,7 +101,9 @@ begin
     RunTest('configuração-base', TestDefaultConfig);
     RunTest('validação de heads', TestInvalidHeadCount);
     RunTest('aleatoriedade determinística', TestDeterministicRandom);
-    Writeln('3 testes aprovados.');
+    RunTest('tokenizer round-trip', TestTokenizerRoundTrip);
+    RunTest('normalização NFC', TestTokenizerNormalizesNFC);
+    Writeln('5 testes aprovados.');
   except
     on E: Exception do
     begin
