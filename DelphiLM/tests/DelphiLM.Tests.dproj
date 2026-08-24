@@ -1,0 +1,55 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{7AA3F23B-3D42-467F-A558-62B589191F74}</ProjectGuid>
+    <ProjectVersion>20.4</ProjectVersion>
+    <FrameworkType>None</FrameworkType>
+    <MainSource>DelphiLM.Tests.dpr</MainSource>
+    <Base>True</Base>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win64</Platform>
+    <TargetedPlatforms>3</TargetedPlatforms>
+    <AppType>Console</AppType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_ExeOutput>..\build\$(Platform)\$(Config)</DCC_ExeOutput>
+    <DCC_DcuOutput>..\build\$(Platform)\$(Config)\dcu-tests</DCC_DcuOutput>
+    <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi</DCC_Namespace>
+    <SanitizedProjectName>DelphiLM_Tests</SanitizedProjectName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug'">
+    <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+    <DCC_DebugDCUs>true</DCC_DebugDCUs>
+    <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+    <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Release'">
+    <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+    <DCC_Optimize>true</DCC_Optimize>
+    <DCC_DebugInformation>false</DCC_DebugInformation>
+    <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="..\src\DelphiLM.Core.Config.pas" />
+    <DCCReference Include="..\src\DelphiLM.Core.Random.pas" />
+    <BuildConfiguration Include="Debug">
+      <Key>Cfg_1</Key>
+      <CfgParent>Base</CfgParent>
+    </BuildConfiguration>
+    <BuildConfiguration Include="Release">
+      <Key>Cfg_2</Key>
+      <CfgParent>Base</CfgParent>
+    </BuildConfiguration>
+    <BuildConfiguration Include="Base">
+      <Key>Base</Key>
+    </BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>Console</Borland.ProjectType>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">DelphiLM.Tests.dpr</Source></Source></Delphi.Personality></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>

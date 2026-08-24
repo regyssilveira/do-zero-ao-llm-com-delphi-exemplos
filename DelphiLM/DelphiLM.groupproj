@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{80509B8E-7BC0-4EB0-BE50-1D887B397C23}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <Projects Include="apps\DelphiLM.Smoke.dproj">
+      <Dependencies />
+    </Projects>
+    <Projects Include="tests\DelphiLM.Tests.dproj">
+      <Dependencies />
+    </Projects>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Default.Personality.12</Borland.Personality>
+    <Borland.ProjectType />
+    <BorlandProject>
+      <Default.Personality />
+    </BorlandProject>
+  </ProjectExtensions>
+  <Target Name="DelphiLM_Smoke">
+    <MSBuild Projects="apps\DelphiLM.Smoke.dproj" Targets="$(Targets)" />
+  </Target>
+  <Target Name="DelphiLM_Tests">
+    <MSBuild Projects="tests\DelphiLM.Tests.dproj" Targets="$(Targets)" />
+  </Target>
+  <Target Name="Build">
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+  </Target>
+  <Target Name="Clean">
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+  </Target>
+  <Target Name="Make">
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+  </Target>
+  <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" />
+</Project>

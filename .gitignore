@@ -1,0 +1,6 @@
+DelphiLM/build/
+**/*.dcu
+**/*.exe
+**/*.local
+**/*.identcache
+**/*.dsk
