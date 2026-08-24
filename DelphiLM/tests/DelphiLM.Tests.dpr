@@ -9,7 +9,8 @@ uses
   DelphiLM.Core.Random in '..\src\DelphiLM.Core.Random.pas',
   DelphiLM.Data.Tokenizer in '..\src\DelphiLM.Data.Tokenizer.pas',
   DelphiLM.Math.Tensor in '..\src\DelphiLM.Math.Tensor.pas',
-  DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas';
+  DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas',
+  DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -218,6 +219,70 @@ begin
   end;
 end;
 
+procedure TestStableSoftmax;
+var
+  Logits: TTensor;
+  Probabilities: TTensor;
+  Sum: Single;
+begin
+  Logits := TTensor.Create([3]);
+  Probabilities := nil;
+  try
+    Logits.SetFlatValue(0, 1000);
+    Logits.SetFlatValue(1, 1001);
+    Logits.SetFlatValue(2, 1002);
+    Probabilities := Softmax(Logits);
+    Sum := Probabilities.FlatValue(0) +
+      Probabilities.FlatValue(1) + Probabilities.FlatValue(2);
+    AssertTrue(Abs(Sum - 1) < 1.0E-6,
+      'As probabilidades devem somar um.');
+    AssertTrue(Probabilities.FlatValue(2) > Probabilities.FlatValue(1),
+      'O maior logit deve produzir a maior probabilidade.');
+  finally
+    Probabilities.Free;
+    Logits.Free;
+  end;
+end;
+
+procedure TestCrossEntropyUniform;
+var
+  Logits: TTensor;
+  Loss: Single;
+begin
+  Logits := TTensor.Create([3]);
+  try
+    Logits.Fill(0);
+    Loss := CrossEntropyFromLogits(Logits, 1);
+    AssertTrue(Abs(Loss - Ln(3)) < 1.0E-6,
+      'Três logits iguais devem produzir loss ln(3).');
+  finally
+    Logits.Free;
+  end;
+end;
+
+procedure TestCrossEntropyShiftInvariant;
+var
+  BaseLogits: TTensor;
+  ShiftedLogits: TTensor;
+begin
+  BaseLogits := TTensor.Create([3]);
+  ShiftedLogits := TTensor.Create([3]);
+  try
+    BaseLogits.SetFlatValue(0, 1);
+    BaseLogits.SetFlatValue(1, 2);
+    BaseLogits.SetFlatValue(2, 3);
+    ShiftedLogits.SetFlatValue(0, 1001);
+    ShiftedLogits.SetFlatValue(1, 1002);
+    ShiftedLogits.SetFlatValue(2, 1003);
+    AssertTrue(Abs(CrossEntropyFromLogits(BaseLogits, 2) -
+      CrossEntropyFromLogits(ShiftedLogits, 2)) < 1.0E-5,
+      'Somar constante aos logits não deve alterar a loss.');
+  finally
+    ShiftedLogits.Free;
+    BaseLogits.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -238,7 +303,11 @@ begin
     RunTest('ativações', TestActivations);
     RunTest('inicialização linear determinística',
       TestLinearInitializationIsDeterministic);
-    Writeln('11 testes aprovados.');
+    RunTest('softmax estável', TestStableSoftmax);
+    RunTest('cross-entropy uniforme', TestCrossEntropyUniform);
+    RunTest('cross-entropy invariante a deslocamento',
+      TestCrossEntropyShiftInvariant);
+    Writeln('14 testes aprovados.');
   except
     on E: Exception do
     begin
