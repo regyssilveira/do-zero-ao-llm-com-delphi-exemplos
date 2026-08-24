@@ -38,6 +38,7 @@
     <DCCReference Include="..\src\DelphiLM.Neural.Layers.pas" />
     <DCCReference Include="..\src\DelphiLM.Neural.Loss.pas" />
     <DCCReference Include="..\src\DelphiLM.Neural.Optimizers.pas" />
+    <DCCReference Include="..\src\DelphiLM.Transformer.Embeddings.pas" />
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
       <CfgParent>Base</CfgParent>

@@ -11,7 +11,8 @@ uses
   DelphiLM.Math.Tensor in '..\src\DelphiLM.Math.Tensor.pas',
   DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas',
   DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas',
-  DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas';
+  DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas',
+  DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -437,6 +438,62 @@ begin
   end;
 end;
 
+procedure TestTokenPositionEmbeddingForward;
+var
+  Embedding: TTokenPositionEmbedding;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Tokens: TArray<Integer>;
+begin
+  Random.Initialize(10);
+  Embedding := TTokenPositionEmbedding.Create(3, 4, 2, Random);
+  Output := nil;
+  try
+    Embedding.TokenTable.SetValue(1, 0, 1.0);
+    Embedding.TokenTable.SetValue(1, 1, 2.0);
+    Embedding.PositionTable.SetValue(0, 0, 0.1);
+    Embedding.PositionTable.SetValue(0, 1, 0.2);
+    Tokens := TArray<Integer>.Create(1);
+    Output := Embedding.Forward(Tokens);
+    AssertTrue(Abs(Output.ValueAt([0, 0]) - 1.1) < 1.0E-6,
+      'Embedding deve somar token e posição no componente zero.');
+    AssertTrue(Abs(Output.ValueAt([0, 1]) - 2.2) < 1.0E-6,
+      'Embedding deve somar token e posição no componente um.');
+  finally
+    Output.Free;
+    Embedding.Free;
+  end;
+end;
+
+procedure TestEmbeddingBackwardAccumulatesRepeatedToken;
+var
+  Embedding: TTokenPositionEmbedding;
+  GradOutput: TTensor;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Tokens: TArray<Integer>;
+begin
+  Random.Initialize(11);
+  Embedding := TTokenPositionEmbedding.Create(3, 4, 2, Random);
+  GradOutput := TTensor.Create([2, 2]);
+  Output := nil;
+  try
+    Tokens := TArray<Integer>.Create(1, 1);
+    Output := Embedding.Forward(Tokens);
+    GradOutput.Fill(1);
+    Embedding.ZeroGrad;
+    Embedding.Backward(GradOutput);
+    AssertTrue(Abs(Embedding.TokenTable.GradientAt(1, 0) - 2) < 1.0E-6,
+      'Token repetido deve acumular duas contribuições.');
+    AssertTrue(Abs(Embedding.PositionTable.GradientAt(0, 0) - 1) < 1.0E-6,
+      'Cada posição deve receber sua própria contribuição.');
+  finally
+    Output.Free;
+    GradOutput.Free;
+    Embedding.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -464,7 +521,10 @@ begin
     RunTest('gradient check da camada linear', TestLinearGradientCheck);
     RunTest('clipping por norma global', TestGradientClipScale);
     RunTest('Adam aprende exemplo minúsculo', TestAdamLearnsTinyExample);
-    Writeln('17 testes aprovados.');
+    RunTest('embedding de token e posição', TestTokenPositionEmbeddingForward);
+    RunTest('backward de embedding acumula repetição',
+      TestEmbeddingBackwardAccumulatesRepeatedToken);
+    Writeln('19 testes aprovados.');
   except
     on E: Exception do
     begin
