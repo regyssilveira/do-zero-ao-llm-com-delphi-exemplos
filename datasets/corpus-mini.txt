@@ -1,0 +1,70 @@
+DelphiLM Corpus Didático PT-BR
+Textos originais sobre programação, testes e modelos de linguagem.
+
+No início da manhã, Ana abriu o projeto e conferiu a configuração. Durante a conferência, percebeu que um índice apontava para a posição seguinte. Em vez de alterar várias partes ao mesmo tempo, transformou a expectativa em uma asserção pequena. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No início da manhã, Bruno abriu o projeto e conferiu a configuração. Durante a conferência, percebeu que um índice apontava para a posição seguinte. Em vez de alterar várias partes ao mesmo tempo, transformou a expectativa em uma asserção pequena. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No laboratório, embedding significa um vetor aprendido selecionado por um token ou posição. Essa definição é operacional: ganha utilidade quando o treinamento ajusta seus componentes. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+Antes da primeira compilação, Daniel executou a suíte e leu cada mensagem. Durante a conferência, percebeu que um índice apontava para a posição seguinte. Em vez de alterar várias partes ao mesmo tempo, transformou a expectativa em uma asserção pequena. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Pergunta do laboratório: Por que devolver logits?
+Resposta: Porque treinamento e geração aplicam transformações diferentes antes de obter probabilidades. A decisão permanece explícita no código, nos testes e no registro do experimento.
+
+No laboratório, logit significa uma pontuação ainda não normalizada. Essa definição é operacional: pode ser negativo e não precisa somar um. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+Depois de uma pequena pausa, Helena comparou a conta feita no papel com a saída. Durante a conferência, percebeu que o contexto ultrapassava o limite configurado. Em vez de alterar várias partes ao mesmo tempo, transformou a expectativa em uma asserção pequena. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Registro de execução:
+[OK] loss final ficou abaixo da loss inicial
+[OK] tensor percorreu o buffer em ordem de linha
+Duas linhas aprovadas não provam todo o sistema, mas documentam propriedades concretas. Se uma delas falhar, a mensagem deve indicar qual contrato deixou de ser atendido.
+
+Ao repetir o experimento, Joana comparou a conta feita no papel com a saída. Durante a conferência, percebeu que o contexto ultrapassava o limite configurado. Em vez de alterar várias partes ao mesmo tempo, imprimiu as dimensões e acompanhou os índices. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Ao repetir o experimento, Lucas reduziu o exemplo até restar uma única operação. Durante a conferência, percebeu que o contexto ultrapassava o limite configurado. Em vez de alterar várias partes ao mesmo tempo, imprimiu as dimensões e acompanhou os índices. O teste passou e o motivo ficou visível. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No laboratório, Adam significa um otimizador que mantém médias do histórico dos gradientes. Essa definição é operacional: adapta o passo aplicado a cada parâmetro. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+No fim da tarde, Nuno reduziu o exemplo até restar uma única operação. Durante a conferência, percebeu que um gradiente antigo não havia sido zerado. Em vez de alterar várias partes ao mesmo tempo, imprimiu as dimensões e acompanhou os índices. A saída voltou a coincidir com a conta manual. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Pergunta do laboratório: Por que devolver logits?
+Resposta: Porque treinamento e geração aplicam transformações diferentes antes de obter probabilidades. A decisão permanece explícita no código, nos testes e no registro do experimento.
+
+No laboratório, LayerNorm significa a normalização aplicada aos componentes de cada posição. Essa definição é operacional: possui escala e deslocamento aprendidos. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+Durante a execução em release, Rita inspecionou o shape antes de percorrer o tensor. Durante a conferência, percebeu que um gradiente antigo não havia sido zerado. Em vez de alterar várias partes ao mesmo tempo, fixou a seed e eliminou uma fonte de variação. A saída voltou a coincidir com a conta manual. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Registro de execução:
+[OK] loss final ficou abaixo da loss inicial
+[OK] tensor percorreu o buffer em ordem de linha
+Duas linhas aprovadas não provam todo o sistema, mas documentam propriedades concretas. Se uma delas falhar, a mensagem deve indicar qual contrato deixou de ser atendido.
+
+No início da manhã, Ana repetiu o treinamento com a mesma seed. Durante a conferência, percebeu que a entrada continha uma forma Unicode diferente. Em vez de alterar várias partes ao mesmo tempo, fixou a seed e eliminou uma fonte de variação. A saída voltou a coincidir com a conta manual. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No início da manhã, Bruno repetiu o treinamento com a mesma seed. Durante a conferência, percebeu que a entrada continha uma forma Unicode diferente. Em vez de alterar várias partes ao mesmo tempo, fixou a seed e eliminou uma fonte de variação. A saída voltou a coincidir com a conta manual. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No laboratório, embedding significa um vetor aprendido selecionado por um token ou posição. Essa definição é operacional: ganha utilidade quando o treinamento ajusta seus componentes. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+Antes da primeira compilação, Daniel verificou quem era responsável por liberar cada objeto. Durante a conferência, percebeu que a entrada continha uma forma Unicode diferente. Em vez de alterar várias partes ao mesmo tempo, fixou a seed e eliminou uma fonte de variação. A saída voltou a coincidir com a conta manual. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Pergunta do laboratório: Por que devolver logits?
+Resposta: Porque treinamento e geração aplicam transformações diferentes antes de obter probabilidades. A decisão permanece explícita no código, nos testes e no registro do experimento.
+
+No laboratório, logit significa uma pontuação ainda não normalizada. Essa definição é operacional: pode ser negativo e não precisa somar um. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+Depois de uma pequena pausa, Helena registrou a loss antes e depois da atualização. Durante a conferência, percebeu que a taxa de aprendizado era grande para aquele teste. Em vez de alterar várias partes ao mesmo tempo, normalizou o texto antes de criar o vocabulário. A falha deixou de aparecer nas execuções seguintes. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Registro de execução:
+[OK] loss final ficou abaixo da loss inicial
+[OK] tensor percorreu o buffer em ordem de linha
+Duas linhas aprovadas não provam todo o sistema, mas documentam propriedades concretas. Se uma delas falhar, a mensagem deve indicar qual contrato deixou de ser atendido.
+
+Ao repetir o experimento, Joana abriu o projeto e conferiu a configuração. Durante a conferência, percebeu que a taxa de aprendizado era grande para aquele teste. Em vez de alterar várias partes ao mesmo tempo, normalizou o texto antes de criar o vocabulário. A falha deixou de aparecer nas execuções seguintes. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+Ao repetir o experimento, Lucas abriu o projeto e conferiu a configuração. Durante a conferência, percebeu que o arquivo de parâmetros usava outra configuração. Em vez de alterar várias partes ao mesmo tempo, normalizou o texto antes de criar o vocabulário. A falha deixou de aparecer nas execuções seguintes. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.
+
+No laboratório, Adam significa um otimizador que mantém médias do histórico dos gradientes. Essa definição é operacional: adapta o passo aplicado a cada parâmetro. O leitor pode observar o conceito em uma entrada pequena, conferir a transformação e somente depois generalizar o procedimento para o modelo completo.
+
+No fim da tarde, Nuno executou a suíte e leu cada mensagem. Durante a conferência, percebeu que o arquivo de parâmetros usava outra configuração. Em vez de alterar várias partes ao mesmo tempo, normalizou o texto antes de criar o vocabulário. A falha deixou de aparecer nas execuções seguintes. A equipe registrou a causa, a entrada usada e o resultado esperado para que outra pessoa pudesse repetir a investigação.

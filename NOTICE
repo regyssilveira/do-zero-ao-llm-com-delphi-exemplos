@@ -4,8 +4,8 @@ Copyright 2026 Régys Borges da Silveira
 This product includes example source code developed for the book
 "Do Zero ao LLM com Delphi".
 
-The Apache License 2.0 applies only to source code and accompanying code
-documentation located under the examples directory, unless a file states
-otherwise. Book manuscript, editorial files, datasets, images, and other
-assets are not licensed under the Apache License 2.0 merely because they
-are stored in the same repository.
+The Apache License 2.0 applies to the source code, accompanying code
+documentation, and the original corpus files under datasets/, unless a
+file states otherwise. Book manuscript, editorial files, images, third-party
+datasets, and other assets are not licensed under the Apache License 2.0
+merely because they are stored in the same repository.

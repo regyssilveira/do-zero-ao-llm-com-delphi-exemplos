@@ -116,6 +116,38 @@ begin
   end;
 end;
 
+procedure TestDistributedCorporaRoundTrip;
+const
+  CorpusNames: array[0..1] of string = (
+    'corpus-mini.txt', 'corpus-base.txt');
+var
+  Corpus: string;
+  CorpusName: string;
+  CorpusPath: string;
+  Encoded: TArray<Integer>;
+  Tokenizer: TCharacterTokenizer;
+begin
+  for CorpusName in CorpusNames do
+  begin
+    CorpusPath := TPath.GetFullPath(TPath.Combine(
+      ExtractFilePath(ParamStr(0)), '..\..\..\..\datasets\' + CorpusName));
+    AssertTrue(TFile.Exists(CorpusPath),
+      'Corpus distribuído não encontrado: ' + CorpusPath);
+    Corpus := TFile.ReadAllText(CorpusPath, TEncoding.UTF8);
+    AssertTrue(Corpus <> '', 'O corpus distribuído não pode estar vazio.');
+    Tokenizer := TCharacterTokenizer.Create(Corpus);
+    try
+      Encoded := Tokenizer.Encode(Corpus);
+      AssertTrue(Tokenizer.Decode(Encoded) = Corpus,
+        'O tokenizer deve preservar integralmente ' + CorpusName + '.');
+      AssertTrue(Tokenizer.VocabularySize <= 128,
+        'O vocabulário distribuído deve caber na configuração-base.');
+    finally
+      Tokenizer.Free;
+    end;
+  end;
+end;
+
 procedure TestTensorRowMajor;
 var
   Tensor: TTensor;
@@ -1053,6 +1085,8 @@ begin
     RunTest('aleatoriedade determinística', TestDeterministicRandom);
     RunTest('tokenizer round-trip', TestTokenizerRoundTrip);
     RunTest('normalização NFC', TestTokenizerNormalizesNFC);
+    RunTest('corpora distribuídos em round-trip',
+      TestDistributedCorporaRoundTrip);
     RunTest('tensor row-major', TestTensorRowMajor);
     RunTest('produto escalar', TestDotProduct);
     RunTest('multiplicação matricial', TestMatrixMultiply);
@@ -1094,7 +1128,7 @@ begin
       TestFullModelLearnsTinySequence);
     RunTest('Top-K um escolhe o máximo', TestTopKOneAlwaysChoosesMaximum);
     RunTest('checkpoint restaura logits exatos', TestCheckpointRestoresExactLogits);
-    Writeln('34 testes aprovados.');
+    Writeln('35 testes aprovados.');
   except
     on E: Exception do
     begin
