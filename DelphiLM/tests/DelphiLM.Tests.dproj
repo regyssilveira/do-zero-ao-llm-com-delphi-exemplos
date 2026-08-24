@@ -34,6 +34,7 @@
     <DCCReference Include="..\src\DelphiLM.Core.Config.pas" />
     <DCCReference Include="..\src\DelphiLM.Core.Random.pas" />
     <DCCReference Include="..\src\DelphiLM.Data.Tokenizer.pas" />
+    <DCCReference Include="..\src\DelphiLM.Math.Tensor.pas" />
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
       <CfgParent>Base</CfgParent>
