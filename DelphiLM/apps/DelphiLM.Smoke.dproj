@@ -14,6 +14,7 @@
     <DCC_ExeOutput>..\build\$(Platform)\$(Config)</DCC_ExeOutput>
     <DCC_DcuOutput>..\build\$(Platform)\$(Config)\dcu-smoke</DCC_DcuOutput>
     <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi</DCC_Namespace>
+    <DCC_ForceExecute>true</DCC_ForceExecute>
     <SanitizedProjectName>DelphiLM_Smoke</SanitizedProjectName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Config)'=='Debug'">
@@ -25,8 +26,6 @@
   <PropertyGroup Condition="'$(Config)'=='Release'">
     <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
     <DCC_Optimize>true</DCC_Optimize>
-    <DCC_DebugInformation>false</DCC_DebugInformation>
-    <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <DelphiCompile Include="$(MainSource)">

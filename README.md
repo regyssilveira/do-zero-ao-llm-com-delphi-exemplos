@@ -27,3 +27,5 @@ Abra `DelphiLM/DelphiLM.groupproj` no Delphi 13 Florence. O grupo contém:
 
 - `DelphiLM.Smoke`: confirma configuração e execução Win64;
 - `DelphiLM.Tests`: executa os testes automatizados iniciais.
+
+O estado inicial foi compilado no Delphi 13/compilador Win64 37.0 em Debug e Release. Os testes verificam a configuração de referência, a compatibilidade entre embedding e cabeças e a repetibilidade do gerador pseudoaleatório.
