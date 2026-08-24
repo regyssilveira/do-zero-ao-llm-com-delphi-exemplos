@@ -12,7 +12,8 @@ uses
   DelphiLM.Neural.Layers in '..\src\DelphiLM.Neural.Layers.pas',
   DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas',
   DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas',
-  DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas';
+  DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas',
+  DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -494,6 +495,89 @@ begin
   end;
 end;
 
+procedure TestCausalAttentionUniformWeights;
+var
+  Keys: TTensor;
+  Output: TTensor;
+  Queries: TTensor;
+  Values: TTensor;
+  Weights: TTensor;
+begin
+  Queries := TTensor.Create([3, 1]);
+  Keys := TTensor.Create([3, 1]);
+  Values := TTensor.Create([3, 1]);
+  Output := nil;
+  Weights := nil;
+  try
+    Queries.Fill(0);
+    Keys.Fill(0);
+    Values.SetValue(10, [0, 0]);
+    Values.SetValue(20, [1, 0]);
+    Values.SetValue(30, [2, 0]);
+    Output := CausalScaledDotProductAttention(
+      Queries, Keys, Values, Weights);
+    AssertTrue(Abs(Weights.ValueAt([0, 0]) - 1) < 1.0E-6,
+      'A primeira posição deve olhar somente para si.');
+    AssertTrue(Abs(Weights.ValueAt([1, 0]) - 0.5) < 1.0E-6,
+      'A segunda posição deve dividir pesos entre duas chaves.');
+    AssertTrue(Weights.ValueAt([1, 2]) = 0,
+      'A máscara causal deve zerar a posição futura.');
+    AssertTrue(Abs(Output.ValueAt([2, 0]) - 20) < 1.0E-6,
+      'A terceira saída deve ser a média 10, 20 e 30.');
+  finally
+    Weights.Free;
+    Output.Free;
+    Values.Free;
+    Keys.Free;
+    Queries.Free;
+  end;
+end;
+
+procedure TestCausalAttentionIgnoresFutureValue;
+var
+  FirstOutput: TTensor;
+  FirstWeights: TTensor;
+  Keys: TTensor;
+  Queries: TTensor;
+  SecondOutput: TTensor;
+  SecondWeights: TTensor;
+  Values: TTensor;
+begin
+  Queries := TTensor.Create([3, 1]);
+  Keys := TTensor.Create([3, 1]);
+  Values := TTensor.Create([3, 1]);
+  FirstOutput := nil;
+  FirstWeights := nil;
+  SecondOutput := nil;
+  SecondWeights := nil;
+  try
+    Queries.Fill(0);
+    Keys.Fill(0);
+    Values.SetValue(10, [0, 0]);
+    Values.SetValue(20, [1, 0]);
+    Values.SetValue(30, [2, 0]);
+    FirstOutput := CausalScaledDotProductAttention(
+      Queries, Keys, Values, FirstWeights);
+    Values.SetValue(999, [2, 0]);
+    SecondOutput := CausalScaledDotProductAttention(
+      Queries, Keys, Values, SecondWeights);
+    AssertTrue(FirstOutput.ValueAt([0, 0]) =
+      SecondOutput.ValueAt([0, 0]),
+      'Mudar o futuro não pode alterar a posição zero.');
+    AssertTrue(FirstOutput.ValueAt([1, 0]) =
+      SecondOutput.ValueAt([1, 0]),
+      'Mudar o futuro não pode alterar a posição um.');
+  finally
+    SecondWeights.Free;
+    SecondOutput.Free;
+    FirstWeights.Free;
+    FirstOutput.Free;
+    Values.Free;
+    Keys.Free;
+    Queries.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -524,7 +608,11 @@ begin
     RunTest('embedding de token e posição', TestTokenPositionEmbeddingForward);
     RunTest('backward de embedding acumula repetição',
       TestEmbeddingBackwardAccumulatesRepeatedToken);
-    Writeln('19 testes aprovados.');
+    RunTest('atenção causal com pesos uniformes',
+      TestCausalAttentionUniformWeights);
+    RunTest('atenção causal ignora valor futuro',
+      TestCausalAttentionIgnoresFutureValue);
+    Writeln('21 testes aprovados.');
   except
     on E: Exception do
     begin
