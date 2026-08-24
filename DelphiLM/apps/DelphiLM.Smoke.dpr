@@ -8,17 +8,21 @@ uses
   DelphiLM.Core.Config in '..\src\DelphiLM.Core.Config.pas',
   DelphiLM.Core.Random in '..\src\DelphiLM.Core.Random.pas';
 
+const
+  Banner = '''
+    DelphiLM smoke test
+    Plataforma: Delphi 13 Florence / Win64
+    ''';
+
 var
-  Config: TDelphiLMConfig;
   Random: TXorShift64Star;
 begin
   try
-    Config := TDelphiLMConfig.Default;
+    var Config := TDelphiLMConfig.Default;
     Config.Validate;
     Random.Initialize(Config.Seed);
 
-    Writeln('DelphiLM smoke test');
-    Writeln('Plataforma: Delphi 13 Florence / Win64');
+    Writeln(Banner);
     Writeln('Parâmetros de referência: ', Config.ParameterCount);
     Writeln('Amostra determinística: ', FormatFloat('0.000000', Random.NextSingle));
   except
