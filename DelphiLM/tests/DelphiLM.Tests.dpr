@@ -16,7 +16,9 @@ uses
   DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas',
   DelphiLM.Transformer.MultiHeadAttention in '..\src\DelphiLM.Transformer.MultiHeadAttention.pas',
   DelphiLM.Transformer.Block in '..\src\DelphiLM.Transformer.Block.pas',
-  DelphiLM.Model.LanguageModel in '..\src\DelphiLM.Model.LanguageModel.pas';
+  DelphiLM.Model.LanguageModel in '..\src\DelphiLM.Model.LanguageModel.pas',
+  DelphiLM.Neural.Parameters in '..\src\DelphiLM.Neural.Parameters.pas',
+  DelphiLM.Model.Training in '..\src\DelphiLM.Model.Training.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -812,6 +814,48 @@ begin
   end;
 end;
 
+procedure TestFullModelLearnsTinySequence;
+var
+  Config: TDelphiLMConfig;
+  FinalLoss: Single;
+  InitialLoss: Single;
+  InputBatch: TTokenBatch;
+  Inputs: TArray<Integer>;
+  Model: TDelphiLanguageModel;
+  Optimizer: TModelAdamOptimizer;
+  Step: Integer;
+  Targets: TArray<Integer>;
+  TargetBatch: TTokenBatch;
+begin
+  Config := TDelphiLMConfig.Default;
+  Config.VocabularySize := 3;
+  Config.ContextLength := 2;
+  Config.EmbeddingDimension := 2;
+  Config.BlockCount := 1;
+  Config.AttentionHeadCount := 1;
+  Config.FeedForwardDimension := 4;
+  Config.Seed := 15;
+  Model := TDelphiLanguageModel.Create(Config);
+  Optimizer := TModelAdamOptimizer.Create(Model, 0.02);
+  try
+    Inputs := TArray<Integer>.Create(0, 0);
+    Targets := TArray<Integer>.Create(1, 1);
+    InputBatch := TTokenBatch.Create(Inputs, Copy(Inputs));
+    TargetBatch := TTokenBatch.Create(Targets, Copy(Targets));
+    InitialLoss := TrainBatch(Model, Optimizer, InputBatch, TargetBatch);
+    for Step := 2 to 120 do
+      FinalLoss := TrainBatch(Model, Optimizer, InputBatch, TargetBatch);
+    AssertTrue(FinalLoss < InitialLoss * 0.1,
+      'O modelo completo deve reduzir a loss do batch minúsculo em 90%.');
+    AssertTrue(FinalLoss < 0.05,
+      'O modelo completo deve memorizar o batch minúsculo.');
+    Writeln(Format('     loss: %.6f -> %.6f', [InitialLoss, FinalLoss]));
+  finally
+    Optimizer.Free;
+    Model.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -857,7 +901,9 @@ begin
       TestLanguageModelProducesLogitsWithTiedWeights);
     RunTest('modelo rejeita contexto longo',
       TestLanguageModelRejectsLongContext);
-    Writeln('27 testes aprovados.');
+    RunTest('modelo completo aprende sequência minúscula',
+      TestFullModelLearnsTinySequence);
+    Writeln('28 testes aprovados.');
   except
     on E: Exception do
     begin

@@ -5,15 +5,16 @@ interface
 
 uses
   DelphiLM.Core.Random,
-  DelphiLM.Math.Tensor;
+  DelphiLM.Math.Tensor,
+  DelphiLM.Neural.Parameters,
+  System.Generics.Collections;
 
 type
   TEmbeddingTable = class
   private
     FEmbeddingDimension: Integer;
-    FGradients: TTensor;
     FItemCount: Integer;
-    FWeights: TTensor;
+    FParameter: TTrainableParameter;
     procedure ValidateItem(const AItem: Integer);
   public
     constructor Create(const AItemCount, AEmbeddingDimension: Integer;
@@ -22,6 +23,9 @@ type
     function Lookup(const AItems: TArray<Integer>): TTensor;
     procedure AccumulateGradients(const AItems: TArray<Integer>;
       const AGradOutput: TTensor);
+    procedure AddGradient(const AItem, AComponent: Integer;
+      const AValue: Single);
+    procedure CollectParameters(const AList: TList<TTrainableParameter>);
     procedure ZeroGrad;
     procedure SetValue(const AItem, AComponent: Integer;
       const AValue: Single);
@@ -43,6 +47,7 @@ type
     destructor Destroy; override;
     function Forward(const ATokens: TArray<Integer>): TTensor;
     procedure Backward(const AGradOutput: TTensor);
+    procedure CollectParameters(const AList: TList<TTrainableParameter>);
     procedure ZeroGrad;
     property TokenTable: TEmbeddingTable read FTokenTable;
     property PositionTable: TEmbeddingTable read FPositionTable;
@@ -69,19 +74,18 @@ begin
       'EmbeddingDimension deve ser positivo.');
   FItemCount := AItemCount;
   FEmbeddingDimension := AEmbeddingDimension;
-  FWeights := TTensor.Create([FItemCount, FEmbeddingDimension]);
-  FGradients := TTensor.Create([FItemCount, FEmbeddingDimension]);
+  FParameter := TTrainableParameter.Create([
+    FItemCount, FEmbeddingDimension]);
   Limit := 1 / Sqrt(FEmbeddingDimension);
   for Item := 0 to FItemCount - 1 do
     for Component := 0 to FEmbeddingDimension - 1 do
-      FWeights.SetValue((2 * ARandom.NextSingle - 1) * Limit,
+      FParameter.Value.SetValue((2 * ARandom.NextSingle - 1) * Limit,
         [Item, Component]);
 end;
 
 destructor TEmbeddingTable.Destroy;
 begin
-  FGradients.Free;
-  FWeights.Free;
+  FParameter.Free;
   inherited;
 end;
 
@@ -104,7 +108,8 @@ begin
   begin
     ValidateItem(AItems[ItemIndex]);
     for Component := 0 to FEmbeddingDimension - 1 do
-      Result.SetValue(FWeights.ValueAt([AItems[ItemIndex], Component]),
+      Result.SetValue(FParameter.Value.ValueAt([
+        AItems[ItemIndex], Component]),
         [ItemIndex, Component]);
   end;
 end;
@@ -126,37 +131,49 @@ begin
   begin
     ValidateItem(AItems[ItemIndex]);
     for Component := 0 to FEmbeddingDimension - 1 do
-      FGradients.SetValue(
-        FGradients.ValueAt([AItems[ItemIndex], Component]) +
-          AGradOutput.ValueAt([ItemIndex, Component]),
-        [AItems[ItemIndex], Component]);
+      AddGradient(AItems[ItemIndex], Component,
+        AGradOutput.ValueAt([ItemIndex, Component]));
   end;
+end;
+
+procedure TEmbeddingTable.AddGradient(const AItem,
+  AComponent: Integer; const AValue: Single);
+begin
+  ValidateItem(AItem);
+  FParameter.AddGradientFlat(
+    AItem * FEmbeddingDimension + AComponent, AValue);
+end;
+
+procedure TEmbeddingTable.CollectParameters(
+  const AList: TList<TTrainableParameter>);
+begin
+  AList.Add(FParameter);
 end;
 
 procedure TEmbeddingTable.ZeroGrad;
 begin
-  FGradients.Fill(0);
+  FParameter.ZeroGrad;
 end;
 
 procedure TEmbeddingTable.SetValue(const AItem, AComponent: Integer;
   const AValue: Single);
 begin
   ValidateItem(AItem);
-  FWeights.SetValue(AValue, [AItem, AComponent]);
+  FParameter.Value.SetValue(AValue, [AItem, AComponent]);
 end;
 
 function TEmbeddingTable.ValueAt(const AItem,
   AComponent: Integer): Single;
 begin
   ValidateItem(AItem);
-  Result := FWeights.ValueAt([AItem, AComponent]);
+  Result := FParameter.Value.ValueAt([AItem, AComponent]);
 end;
 
 function TEmbeddingTable.GradientAt(const AItem,
   AComponent: Integer): Single;
 begin
   ValidateItem(AItem);
-  Result := FGradients.ValueAt([AItem, AComponent]);
+  Result := FParameter.Gradient.ValueAt([AItem, AComponent]);
 end;
 
 constructor TTokenPositionEmbedding.Create(const AVocabularySize,
@@ -219,6 +236,13 @@ begin
     Positions[Position] := Position;
   FTokenTable.AccumulateGradients(FCachedTokens, AGradOutput);
   FPositionTable.AccumulateGradients(Positions, AGradOutput);
+end;
+
+procedure TTokenPositionEmbedding.CollectParameters(
+  const AList: TList<TTrainableParameter>);
+begin
+  FTokenTable.CollectParameters(AList);
+  FPositionTable.CollectParameters(AList);
 end;
 
 procedure TTokenPositionEmbedding.ZeroGrad;
