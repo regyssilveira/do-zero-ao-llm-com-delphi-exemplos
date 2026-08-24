@@ -45,6 +45,8 @@
     <DCCReference Include="..\src\DelphiLM.Model.LanguageModel.pas" />
     <DCCReference Include="..\src\DelphiLM.Neural.Parameters.pas" />
     <DCCReference Include="..\src\DelphiLM.Model.Training.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.Generation.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.Checkpoint.pas" />
     <BuildConfiguration Include="Debug">
       <Key>Cfg_1</Key>
       <CfgParent>Base</CfgParent>

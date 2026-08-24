@@ -18,7 +18,10 @@ uses
   DelphiLM.Transformer.Block in '..\src\DelphiLM.Transformer.Block.pas',
   DelphiLM.Model.LanguageModel in '..\src\DelphiLM.Model.LanguageModel.pas',
   DelphiLM.Neural.Parameters in '..\src\DelphiLM.Neural.Parameters.pas',
-  DelphiLM.Model.Training in '..\src\DelphiLM.Model.Training.pas';
+  DelphiLM.Model.Training in '..\src\DelphiLM.Model.Training.pas',
+  DelphiLM.Model.Generation in '..\src\DelphiLM.Model.Generation.pas',
+  DelphiLM.Model.Checkpoint in '..\src\DelphiLM.Model.Checkpoint.pas',
+  System.IOUtils;
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -856,6 +859,39 @@ begin
   end;
 end;
 
+procedure TestTopKOneAlwaysChoosesMaximum;
+var Logits: TTensor; Random: TXorShift64Star;
+begin
+  Logits := TTensor.Create([1, 3]);
+  try
+    Logits.SetValue(-1, [0, 0]); Logits.SetValue(4, [0, 1]);
+    Logits.SetValue(2, [0, 2]); Random.Initialize(16);
+    AssertTrue(SampleNextToken(Logits, 0, 1, 1, Random) = 1,
+      'Top-K igual a um deve escolher o maior logit.');
+  finally Logits.Free end;
+end;
+
+procedure TestCheckpointRestoresExactLogits;
+var A, B: TDelphiLanguageModel; C: TDelphiLMConfig; FileName: string;
+  I: Integer; LA, LB: TTensor; Tokens: TArray<Integer>;
+begin
+  C := TDelphiLMConfig.Default; C.VocabularySize := 3; C.ContextLength := 2;
+  C.EmbeddingDimension := 2; C.BlockCount := 1; C.AttentionHeadCount := 1;
+  C.FeedForwardDimension := 4; C.Seed := 17;
+  A := TDelphiLanguageModel.Create(C); C.Seed := 999;
+  B := TDelphiLanguageModel.Create(C); LA := nil; LB := nil;
+  FileName := TPath.GetTempFileName;
+  try
+    SaveCheckpoint(A, FileName); LoadCheckpoint(B, FileName);
+    Tokens := TArray<Integer>.Create(0, 1); LA := A.Forward(Tokens); LB := B.Forward(Tokens);
+    for I := 0 to LA.ElementCount - 1 do AssertTrue(LA.FlatValue(I) = LB.FlatValue(I),
+      'Checkpoint deve restaurar logits bit a bit.');
+  finally
+    LB.Free; LA.Free; B.Free; A.Free;
+    if TFile.Exists(FileName) then TFile.Delete(FileName);
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -903,7 +939,9 @@ begin
       TestLanguageModelRejectsLongContext);
     RunTest('modelo completo aprende sequência minúscula',
       TestFullModelLearnsTinySequence);
-    Writeln('28 testes aprovados.');
+    RunTest('Top-K um escolhe o máximo', TestTopKOneAlwaysChoosesMaximum);
+    RunTest('checkpoint restaura logits exatos', TestCheckpointRestoresExactLogits);
+    Writeln('30 testes aprovados.');
   except
     on E: Exception do
     begin
