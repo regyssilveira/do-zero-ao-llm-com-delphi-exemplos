@@ -35,6 +35,9 @@ O projeto `DelphiLM` implementa o percurso técnico completo do livro: configura
 Abra `DelphiLM/DelphiLM.groupproj` no Delphi 13 Florence. O grupo contém:
 
 - `DelphiLM.Smoke`: confirma configuração e execução Win64;
-- `DelphiLM.Tests`: executa os testes automatizados iniciais.
+- `DelphiLM.Tests`: executa os testes automatizados;
+- `DelphiLM.Benchmark`: mede loss, tempo, throughput e pico de memória no corpus-base.
 
 A versão consolidada foi compilada no Delphi 13 Florence, compilador Win64 37.0, em Debug e Release. Execute `DelphiLM.Tests`; o critério é concluir 35 testes sem linhas de falha e encerrar com código zero. `DelphiLM.Smoke` confirma a configuração de referência e a sequência pseudoaleatória reproduzível.
+
+O benchmark de referência usa Release/Win64. Após compilar o grupo, execute `DelphiLM.Benchmark.exe datasets\corpus-base.txt 50`. O relatório medido fica em `benchmarks/2026-08-24-win64-release.md`.

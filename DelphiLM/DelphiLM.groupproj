@@ -9,6 +9,9 @@
     <Projects Include="tests\DelphiLM.Tests.dproj">
       <Dependencies />
     </Projects>
+    <Projects Include="apps\DelphiLM.Benchmark.dproj">
+      <Dependencies />
+    </Projects>
   </ItemGroup>
   <ProjectExtensions>
     <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -23,14 +26,17 @@
   <Target Name="DelphiLM_Tests">
     <MSBuild Projects="tests\DelphiLM.Tests.dproj" Targets="$(Targets)" />
   </Target>
+  <Target Name="DelphiLM_Benchmark">
+    <MSBuild Projects="apps\DelphiLM.Benchmark.dproj" Targets="$(Targets)" />
+  </Target>
   <Target Name="Build">
-    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests;DelphiLM_Benchmark" />
   </Target>
   <Target Name="Clean">
-    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests;DelphiLM_Benchmark" />
   </Target>
   <Target Name="Make">
-    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests" />
+    <CallTarget Targets="DelphiLM_Smoke;DelphiLM_Tests;DelphiLM_Benchmark" />
   </Target>
   <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" />
 </Project>

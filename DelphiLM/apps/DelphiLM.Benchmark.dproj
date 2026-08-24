@@ -1,0 +1,57 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{A0AE339B-5224-473C-9DE5-CF019AFA59EE}</ProjectGuid>
+    <ProjectVersion>20.4</ProjectVersion>
+    <FrameworkType>None</FrameworkType>
+    <MainSource>DelphiLM.Benchmark.dpr</MainSource>
+    <Base>True</Base>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <Platform Condition="'$(Platform)'==''">Win64</Platform>
+    <TargetedPlatforms>3</TargetedPlatforms>
+    <AppType>Console</AppType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_ExeOutput>..\build\$(Platform)\$(Config)</DCC_ExeOutput>
+    <DCC_DcuOutput>..\build\$(Platform)\$(Config)\dcu-benchmark</DCC_DcuOutput>
+    <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi</DCC_Namespace>
+    <DCC_ForceExecute>true</DCC_ForceExecute>
+    <SanitizedProjectName>DelphiLM_Benchmark</SanitizedProjectName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug'">
+    <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+    <DCC_DebugDCUs>true</DCC_DebugDCUs>
+    <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+    <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Release'">
+    <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+    <DCC_Optimize>true</DCC_Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
+    <DCCReference Include="..\src\DelphiLM.Core.Config.pas" />
+    <DCCReference Include="..\src\DelphiLM.Core.Random.pas" />
+    <DCCReference Include="..\src\DelphiLM.Data.Tokenizer.pas" />
+    <DCCReference Include="..\src\DelphiLM.Math.Tensor.pas" />
+    <DCCReference Include="..\src\DelphiLM.Neural.Parameters.pas" />
+    <DCCReference Include="..\src\DelphiLM.Neural.Layers.pas" />
+    <DCCReference Include="..\src\DelphiLM.Neural.Loss.pas" />
+    <DCCReference Include="..\src\DelphiLM.Neural.Optimizers.pas" />
+    <DCCReference Include="..\src\DelphiLM.Transformer.Embeddings.pas" />
+    <DCCReference Include="..\src\DelphiLM.Transformer.Attention.pas" />
+    <DCCReference Include="..\src\DelphiLM.Transformer.MultiHeadAttention.pas" />
+    <DCCReference Include="..\src\DelphiLM.Transformer.Block.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.LanguageModel.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.Generation.pas" />
+    <DCCReference Include="..\src\DelphiLM.Model.Training.pas" />
+    <BuildConfiguration Include="Debug"><Key>Cfg_1</Key><CfgParent>Base</CfgParent></BuildConfiguration>
+    <BuildConfiguration Include="Release"><Key>Cfg_2</Key><CfgParent>Base</CfgParent></BuildConfiguration>
+    <BuildConfiguration Include="Base"><Key>Base</Key></BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>Console</Borland.ProjectType>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">DelphiLM.Benchmark.dpr</Source></Source></Delphi.Personality></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>
