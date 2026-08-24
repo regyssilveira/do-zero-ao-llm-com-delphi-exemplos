@@ -13,7 +13,8 @@ uses
   DelphiLM.Neural.Loss in '..\src\DelphiLM.Neural.Loss.pas',
   DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas',
   DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas',
-  DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas';
+  DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas',
+  DelphiLM.Transformer.MultiHeadAttention in '..\src\DelphiLM.Transformer.MultiHeadAttention.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -578,6 +579,75 @@ begin
   end;
 end;
 
+procedure TestMultiHeadAttentionSplitsAndRecombines;
+var
+  Attention: TMultiHeadCausalSelfAttention;
+  Column: Integer;
+  Input: TTensor;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Row: Integer;
+begin
+  Random.Initialize(12);
+  Attention := TMultiHeadCausalSelfAttention.Create(2, 2, Random);
+  Input := TTensor.Create([3, 2]);
+  Output := nil;
+  try
+    for Row := 0 to 1 do
+      for Column := 0 to 1 do
+      begin
+        Attention.SetQueryWeight(Row, Column, 0);
+        Attention.SetKeyWeight(Row, Column, 0);
+        Attention.SetValueWeight(Row, Column, 0);
+        Attention.SetOutputWeight(Row, Column, 0);
+      end;
+    Attention.SetValueWeight(0, 0, 1);
+    Attention.SetValueWeight(1, 1, 1);
+    Attention.SetOutputWeight(0, 0, 1);
+    Attention.SetOutputWeight(1, 1, 1);
+    Input.SetValue(10, [0, 0]);
+    Input.SetValue(100, [0, 1]);
+    Input.SetValue(20, [1, 0]);
+    Input.SetValue(200, [1, 1]);
+    Input.SetValue(30, [2, 0]);
+    Input.SetValue(300, [2, 1]);
+    Output := Attention.Forward(Input);
+    AssertTrue(Abs(Output.ValueAt([1, 0]) - 15) < 1.0E-6,
+      'A primeira cabeça deve calcular média 15.');
+    AssertTrue(Abs(Output.ValueAt([1, 1]) - 150) < 1.0E-6,
+      'A segunda cabeça deve calcular média 150.');
+    AssertTrue(Abs(Output.ValueAt([2, 1]) - 200) < 1.0E-6,
+      'A projeção deve recombinar a segunda cabeça.');
+  finally
+    Output.Free;
+    Input.Free;
+    Attention.Free;
+  end;
+end;
+
+procedure TestMultiHeadAttentionRejectsInvalidDivision;
+var
+  Attention: TMultiHeadCausalSelfAttention;
+  Random: TXorShift64Star;
+  RaisedExpectedError: Boolean;
+begin
+  Random.Initialize(13);
+  Attention := nil;
+  RaisedExpectedError := False;
+  try
+    try
+      Attention := TMultiHeadCausalSelfAttention.Create(5, 2, Random);
+    except
+      on E: EDelphiLMTensorError do
+        RaisedExpectedError := True;
+    end;
+    AssertTrue(RaisedExpectedError,
+      'Dimensão deve ser divisível pela quantidade de cabeças.');
+  finally
+    Attention.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -612,7 +682,11 @@ begin
       TestCausalAttentionUniformWeights);
     RunTest('atenção causal ignora valor futuro',
       TestCausalAttentionIgnoresFutureValue);
-    Writeln('21 testes aprovados.');
+    RunTest('multi-head divide e recombina',
+      TestMultiHeadAttentionSplitsAndRecombines);
+    RunTest('multi-head rejeita divisão inválida',
+      TestMultiHeadAttentionRejectsInvalidDivision);
+    Writeln('23 testes aprovados.');
   except
     on E: Exception do
     begin
