@@ -23,6 +23,8 @@ type
     class function Default: TDelphiLMConfig; static;
     procedure Validate;
     function ParameterCount: Int64;
+    function InferenceParameterBytes: Int64;
+    function TrainingParameterStateBytes: Int64;
   end;
 
 implementation
@@ -86,6 +88,17 @@ begin
     Int64(BlockCount) * PerBlock +
     (2 * EmbeddingDimension) +
     VocabularySize;
+end;
+
+function TDelphiLMConfig.InferenceParameterBytes: Int64;
+begin
+  Result := ParameterCount * SizeOf(Single);
+end;
+
+function TDelphiLMConfig.TrainingParameterStateBytes: Int64;
+begin
+  { Valor, gradiente e dois momentos do Adam, todos em Single. }
+  Result := ParameterCount * 4 * SizeOf(Single);
 end;
 
 end.

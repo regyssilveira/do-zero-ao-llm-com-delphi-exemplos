@@ -57,6 +57,17 @@ begin
     'Configuração incompatível entre embedding e heads deve falhar.');
 end;
 
+procedure TestParameterMemoryEstimate;
+var
+  Config: TDelphiLMConfig;
+begin
+  Config := TDelphiLMConfig.Default;
+  AssertTrue(Config.InferenceParameterBytes = 450048,
+    'Pesos Single da configuração-base devem ocupar 450.048 bytes.');
+  AssertTrue(Config.TrainingParameterStateBytes = 1800192,
+    'Estado de treino deve contar valor, gradiente e dois momentos.');
+end;
+
 procedure TestDeterministicRandom;
 var
   LeftRandom: TXorShift64Star;
@@ -902,6 +913,8 @@ begin
   try
     RunTest('configuração-base', TestDefaultConfig);
     RunTest('validação de heads', TestInvalidHeadCount);
+    RunTest('estimativa de memória dos parâmetros',
+      TestParameterMemoryEstimate);
     RunTest('aleatoriedade determinística', TestDeterministicRandom);
     RunTest('tokenizer round-trip', TestTokenizerRoundTrip);
     RunTest('normalização NFC', TestTokenizerNormalizesNFC);
@@ -941,7 +954,7 @@ begin
       TestFullModelLearnsTinySequence);
     RunTest('Top-K um escolhe o máximo', TestTopKOneAlwaysChoosesMaximum);
     RunTest('checkpoint restaura logits exatos', TestCheckpointRestoresExactLogits);
-    Writeln('30 testes aprovados.');
+    Writeln('31 testes aprovados.');
   except
     on E: Exception do
     begin
