@@ -4,3 +4,5 @@ DelphiLM/build/
 **/*.local
 **/*.identcache
 **/*.dsk
+DelphiLM/apps/DelphiLM.Smoke.res
+DelphiLM/tests/DelphiLM.Tests.res
