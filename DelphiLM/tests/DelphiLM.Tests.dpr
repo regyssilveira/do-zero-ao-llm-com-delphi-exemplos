@@ -14,7 +14,8 @@ uses
   DelphiLM.Neural.Optimizers in '..\src\DelphiLM.Neural.Optimizers.pas',
   DelphiLM.Transformer.Embeddings in '..\src\DelphiLM.Transformer.Embeddings.pas',
   DelphiLM.Transformer.Attention in '..\src\DelphiLM.Transformer.Attention.pas',
-  DelphiLM.Transformer.MultiHeadAttention in '..\src\DelphiLM.Transformer.MultiHeadAttention.pas';
+  DelphiLM.Transformer.MultiHeadAttention in '..\src\DelphiLM.Transformer.MultiHeadAttention.pas',
+  DelphiLM.Transformer.Block in '..\src\DelphiLM.Transformer.Block.pas';
 
 procedure AssertTrue(const ACondition: Boolean; const AMessage: string);
 begin
@@ -648,6 +649,79 @@ begin
   end;
 end;
 
+procedure TestLayerNormNormalizesEachPosition;
+var
+  Input: TTensor;
+  LayerNorm: TLayerNorm;
+  Mean: Single;
+  MeanSquare: Single;
+  Output: TTensor;
+begin
+  LayerNorm := TLayerNorm.Create(3);
+  Input := TTensor.Create([2, 3]);
+  Output := nil;
+  try
+    Input.SetValue(1, [0, 0]);
+    Input.SetValue(2, [0, 1]);
+    Input.SetValue(3, [0, 2]);
+    Input.SetValue(10, [1, 0]);
+    Input.SetValue(10, [1, 1]);
+    Input.SetValue(10, [1, 2]);
+    Output := LayerNorm.Forward(Input);
+    Mean := (Output.ValueAt([0, 0]) + Output.ValueAt([0, 1]) +
+      Output.ValueAt([0, 2])) / 3;
+    MeanSquare := (Sqr(Output.ValueAt([0, 0])) +
+      Sqr(Output.ValueAt([0, 1])) + Sqr(Output.ValueAt([0, 2]))) / 3;
+    AssertTrue(Abs(Mean) < 1.0E-6,
+      'A média da posição normalizada deve ser zero.');
+    AssertTrue(Abs(MeanSquare - 1) < 1.0E-4,
+      'A variância da posição não constante deve ficar próxima de um.');
+    AssertTrue(Abs(Output.ValueAt([1, 0])) < 1.0E-6,
+      'Uma posição constante deve ser transformada em zeros.');
+  finally
+    Output.Free;
+    Input.Free;
+    LayerNorm.Free;
+  end;
+end;
+
+procedure TestTransformerBlockResidualIdentity;
+var
+  Block: TTransformerBlock;
+  Column: Integer;
+  Input: TTensor;
+  Output: TTensor;
+  Random: TXorShift64Star;
+  Row: Integer;
+begin
+  Random.Initialize(14);
+  Block := TTransformerBlock.Create(2, 2, 4, Random);
+  Input := TTensor.Create([2, 2]);
+  Output := nil;
+  try
+    for Row := 0 to 1 do
+      for Column := 0 to 1 do
+        Block.Attention.SetOutputWeight(Row, Column, 0);
+    for Row := 0 to 1 do
+      for Column := 0 to 3 do
+        Block.SetFeedForwardOutputWeight(Row, Column, 0);
+    Input.SetValue(1, [0, 0]);
+    Input.SetValue(2, [0, 1]);
+    Input.SetValue(3, [1, 0]);
+    Input.SetValue(4, [1, 1]);
+    Output := Block.Forward(Input);
+    for Row := 0 to 1 do
+      for Column := 0 to 1 do
+        AssertTrue(Output.ValueAt([Row, Column]) =
+          Input.ValueAt([Row, Column]),
+          'Ramos zerados devem preservar a entrada pelo residual.');
+  finally
+    Output.Free;
+    Input.Free;
+    Block.Free;
+  end;
+end;
+
 procedure RunTest(const AName: string; const ATest: TProc);
 begin
   ATest();
@@ -686,7 +760,10 @@ begin
       TestMultiHeadAttentionSplitsAndRecombines);
     RunTest('multi-head rejeita divisão inválida',
       TestMultiHeadAttentionRejectsInvalidDivision);
-    Writeln('23 testes aprovados.');
+    RunTest('LayerNorm por posição', TestLayerNormNormalizesEachPosition);
+    RunTest('bloco Transformer preserva residual',
+      TestTransformerBlockResidualIdentity);
+    Writeln('25 testes aprovados.');
   except
     on E: Exception do
     begin
